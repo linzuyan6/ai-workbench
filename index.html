@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>小林的 AI 工作台</title>
 <style>
   * {
@@ -10,6 +10,12 @@
     padding: 0;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body {
+    overflow-x: hidden;
+    touch-action: manipulation;
+    -webkit-overflow-scrolling: touch;
   }
   body {
     background: linear-gradient(135deg, #d4e8ff 0%, #f8f9fa 50%, #fad7e0 100%);
@@ -53,120 +59,253 @@
     text-align: center;
     position: relative;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    -webkit-touch-callout: none;
   }
   .model-card:hover {
     border-color: #007aff;
     box-shadow: 0 10px 25px rgba(0,122,255,0.16);
-    transform: translateY(-3px);
+    transform: translateY(-5px);
   }
   .model-card.active {
     border-color: #007aff;
     background: #f0f7ff;
+    box-shadow: 0 10px 25px rgba(0,122,255,0.16);
+    transform: translateY(-5px);
   }
-  .model-icon {
-    font-size: 36px;
-    margin-bottom: 12px;
+  .gpt-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 16px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .gemini-icon {
+    width: 55px;
+    height: 55px;
+    margin: 0 auto 16px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
   }
   .model-name {
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
   }
-  .free-models {
+  .model-card .tooltip,
+  .free-btn .tooltip {
+    visibility: hidden;
+    width: 220px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 10px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .model-card .tooltip::after,
+  .free-btn .tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+  }
+  .model-card:hover .tooltip,
+  .free-btn:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .free-model-row {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     flex-wrap: wrap;
     justify-content: center;
   }
   .free-btn {
-    padding: 8px 16px;
+    position: relative;
+    padding: 12px 24px;
+    min-width: 120px;
     border-radius: 20px;
-    background: #fff;
     border: 1px solid #e0e6ed;
+    background: #fff;
+    color: #555;
     font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    -webkit-appearance: none;
   }
   .free-btn:hover {
-    background: #f5f5f5;
+    border-color: #007aff;
+    color: #007aff;
+    background: #f5f9ff;
   }
-  .input-area {
-    margin-top: 30px;
-  }
-  .input-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
-    align-items: center;
-  }
-  #userInput {
-    flex: 1;
-    padding: 14px 18px;
-    border-radius: 24px;
-    border: 1px solid #e0e6ed;
-    font-size: 15px;
+
+  .chat-area {
+    margin-top: 50px;
     background: #fff;
-  }
-  button {
-    padding: 14px 20px;
-    border-radius: 24px;
-    border: none;
-    background: #007aff;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-  }
-  button.secondary {
-    background: #6c757d;
-  }
-  button:hover {
-    opacity: 0.9;
-  }
-  .attachment {
-    color: #666;
-    font-size: 14px;
-    margin-bottom: 8px;
+    border-radius: 16px;
+    border: 1px solid #e0e6ed;
+    overflow: hidden;
   }
   .message-box {
-    background: #fff;
-    border-radius: 16px;
-    padding: 20px;
-    min-height: 300px;
-    max-height: 500px;
+    padding: 0 16px;
+    white-space: pre-wrap;
+    line-height: 1.8;
+    font-size: 15px;
+    color: #333;
     overflow-y: auto;
-    border: 1px solid #e0e6ed;
+    max-height: 450px;
   }
   .message {
-    margin-bottom: 16px;
+    margin: 0;
+    padding: 16px 0 8px 0;
+    border-bottom: none;
+  }
+  .message:first-child {
+    padding-top: 0;
   }
   .user-msg {
-    font-weight: 600;
     color: #007aff;
+    font-weight: 600;
     margin-bottom: 4px;
+    font-size: 16px;
   }
   .ai-msg {
-    line-height: 1.6;
     color: #333;
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 400;
   }
-  .modal {
-    position: fixed;
-    left:0; top:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.5);
+
+  .input-row {
+    display: flex;
+    border-top: 1px solid #e0e6ed;
+    align-items: center;
+  }
+  .attach-btn {
+    font-size: 18px;
+    padding: 0 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #666;
+    -webkit-appearance: none;
+  }
+  .attach-btn:hover {
+    color: #007aff;
+  }
+  #fileInput {
     display: none;
+  }
+  .attachment-info {
+    padding: 0 10px;
+    font-size: 12px;
+    color: #007aff;
+  }
+  input {
+    flex: 1;
+    padding: 18px 12px;
+    border: none;
+    font-size: 15px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  button {
+    padding: 18px 28px;
+    background: #007aff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+    -webkit-appearance: none;
+  }
+  button:hover {
+    background: #0056b3;
+  }
+  button.clear-btn {
+    background: #ff6b6b;
+  }
+  button.clear-btn:hover {
+    background: #e55353;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 999;
   }
-  .modal-content {
+  .modal {
     background: white;
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 360px;
     width: 90%;
+    max-width: 700px;
+    padding: 40px;
+    border-radius: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    margin-bottom: 24px;
+    font-size: 22px;
+    color: #2c3e50;
+  }
+  .qa-item {
+    margin-bottom: 20px;
+  }
+  .q {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #2c3e50;
+  }
+  .a {
+    font-size: 15px;
+    color: #555;
+    line-height: 1.6;
+  }
+  .close-btn {
+    margin-top: 30px;
+    background: #f0f0f0;
+    color: #333;
+  }
+  .close-btn:hover {
+    background: #e0e0e0;
+  }
+
+  .footer {
+    margin-top: 60px;
+    font-size: 13px;
+    color: #888;
     text-align: center;
+  }
+  .link {
+    color: #007aff;
+    cursor: pointer;
+    text-decoration: underline;
   }
 </style>
 </head>
+
 <body>
 
 <div class="title">小林的 AI 工作台</div>
@@ -175,39 +314,56 @@
   <div class="section-title">计费模型</div>
   <div class="model-row">
     <div class="model-card" data-model="gpt-3.5-turbo">
-      <div class="model-icon">🟢</div>
+      <div class="gpt-icon" style="background-image: url('gpt3.png')"></div>
       <div class="model-name">GPT-3.5</div>
+      <div class="tooltip">英文写作、海外文献梳理、基础逻辑验证</div>
     </div>
     <div class="model-card" data-model="gpt-4">
-      <div class="model-icon">⚫</div>
+      <div class="gpt-icon" style="background-image: url('gpt4.png')"></div>
       <div class="model-name">GPT-4</div>
+      <div class="tooltip">学术论文、深度推理、竞赛方案、专业报告</div>
     </div>
     <div class="model-card" data-model="gemini-2.0-flash">
-      <div class="model-icon">🟠</div>
+      <svg class="gemini-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="geminiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4285F4;stop-opacity=1" />
+            <stop offset="33%" style="stop-color:#34A853;stop-opacity=1" />
+            <stop offset="66%" style="stop-color:#FBBC05;stop-opacity=1" />
+            <stop offset="100%" style="stop-color:#EA4335;stop-opacity=1" />
+          </linearGradient>
+        </defs>
+        <path fill="url(#geminiGrad)" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-12c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+      </svg>
       <div class="model-name">Gemini 2.0 Flash</div>
+      <div class="tooltip">极速响应、超长上下文、多模态、性价比之王</div>
     </div>
   </div>
 </div>
 
 <div class="model-section">
   <div class="section-title">免费模型</div>
-  <div class="free-models">
-    <button class="free-btn" data-url="https://www.doubao.com/">豆包</button>
-    <button class="free-btn" data-url="https://www.deepseek.com/">DeepSeek</button>
-    <button class="free-btn" data-url="https://qianwen.aliyun.com/">千问</button>
-    <button class="free-btn" data-url="https://kimi.moonshot.cn/">Kimi</button>
+  <div class="free-model-row">
+    <button class="free-btn" data-url="https://www.doubao.com">
+      豆包
+      <div class="tooltip">课堂笔记、日常问答、文案整理、快速构思</div>
+    </button>
+    <button class="free-btn" data-url="https://www.deepseek.com">
+      DeepSeek
+      <div class="tooltip">代码编写、数据处理、算法思路、技术实现</div>
+    </button>
+    <button class="free-btn" data-url="https://tongyi.aliyun.com">
+      千问
+      <div class="tooltip">知识总结、资料整理、作业撰写、通用报告</div>
+    </button>
+    <button class="free-btn" data-url="https://kimi.moonshot.cn">
+      Kimi
+      <div class="tooltip">文献精读、长文阅读、PDF 解析、材料归纳</div>
+    </button>
   </div>
 </div>
 
-<div class="input-area">
-  <div class="attachment" id="attachmentInfo"></div>
-  <div class="input-bar">
-    <input type="file" id="fileInput" style="display:none">
-    <button onclick="document.getElementById('fileInput').click()">📎</button>
-    <input type="text" id="userInput" placeholder="输入问题…">
-    <button onclick="sendMessage()">发送</button>
-    <button class="secondary" onclick="clearHistory()">清空</button>
-  </div>
+<div class="chat-area">
   <div class="message-box" id="messageBox">
     <div class="message">
       <div class="user-msg">系统提示</div>
@@ -218,13 +374,42 @@
       </div>
     </div>
   </div>
+
+  <div class="input-row">
+    <button class="attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+    <input type="file" id="fileInput" accept="*">
+    <span class="attachment-info" id="attachmentInfo"></span>
+    <input id="userInput" placeholder="请输入你的问题..." type="text">
+    <button onclick="sendMessage()">发送</button>
+    <button class="clear-btn" onclick="clearHistory()">清除</button>
+  </div>
 </div>
 
-<div id="firstModal" class="modal">
-  <div class="modal-content">
-    <h3>使用前验证</h3>
-    <p>问题：我最喜欢的歌手？</p >
-    <button onclick="closeFirstModal()">我知道了</button>
+<div class="footer">
+  <div>仅供学习使用 · 小林制作</div>
+  <div class="link" onclick="showQA()">使用说明 · 快问快答</div>
+</div>
+
+<div id="firstModal" class="modal-overlay">
+  <div class="modal">
+    <h2>小林的 AI 工作台 · 快问快答</h2>
+    <div class="qa-item">
+      <div class="q">1. 为什么使用这个网站？</div>
+      <div class="a">一站式聚合国内外主流 AI 模型，界面简洁，专为学生学习、作业、竞赛、论文场景优化。</div>
+    </div>
+    <div class="qa-item">
+      <div class="q">2. 什么是计费模型？</div>
+      <div class="a">上方 GPT-3.5 / GPT-4 / Gemini 2.0 Flash 为计费模型，调用付费接口，会消耗额度。下方为免费跳转模型。</div>
+    </div>
+    <div class="qa-item">
+      <div class="q">3. 和官方 / 镜像站比优势？</div>
+      <div class="a">无需海外账号、无需复杂支付，稳定、干净、性价比更高，适合学生使用。</div>
+    </div>
+    <div class="qa-item">
+      <div class="q">4. 使用建议</div>
+      <div class="a">日常任务用国内免费模型；论文、竞赛、英文等高阶任务使用计费模型。</div>
+    </div>
+    <button class="close-btn" onclick="closeFirstModal()">我已阅读，下一步</button>
   </div>
 </div>
 
@@ -232,10 +417,8 @@
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 
 <script>
-const API_CONFIG = {
-  url: "https://oa.api2d.net/v1/chat/completions",
-  key: "fk236821-pGPMtjGgLLbnIXLPtct56cCUFDGvWUK6"
-};
+const API_URL = "https://oa.api2d.net/v1/chat/completions";
+const FORWARD_KEY = "fk236821-pGPMtjGgLLbnIXLPtct56cCUFDGvWUK6";
 
 let currentModel = null;
 let messageBox = document.getElementById("messageBox");
@@ -354,11 +537,11 @@ async function sendMessage() {
   addMessage(`【${currentModel.toUpperCase()}】`, "正在思考中...", true);
 
   try {
-    let res = await fetch(API_CONFIG.url, {
+    let res = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + API_CONFIG.key
+        "Authorization": "Bearer " + FORWARD_KEY
       },
       body: JSON.stringify({
         model: currentModel,
@@ -417,29 +600,23 @@ function clearHistory() {
   `;
 }
 
-// ↓↓↓ 安卓兼容修复：把弹窗改成安卓能识别的写法 ↓↓↓
 function showQA() {
-  setTimeout(()=>{
-    document.getElementById("firstModal").style.display = "flex";
-  }, 100);
+  document.getElementById("firstModal").style.display = "flex";
 }
 
 function closeFirstModal() {
   document.getElementById("firstModal").style.display = "none";
-  setTimeout(showPassword, 200);
+  setTimeout(showPassword, 300);
 }
 
 function showPassword() {
   let ans = prompt("请输入答案：我最喜欢的歌手？");
   if (ans && ans.trim() === "陶喆") {
-    // 验证通过
   } else {
     alert("答案不正确，无法使用");
     window.close();
   }
 }
-
-window.onload = showQA;
 </script>
 </body>
 </html>
